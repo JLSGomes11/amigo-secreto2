@@ -6,19 +6,36 @@
 <title>Amigo Secreto</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
 <style>
-:root{--bulma-primary-h:153deg}
+:root{
+  --bulma-primary-h:270deg;
+  --bulma-primary-s:55%;
+  /* >>> TROQUE AQUI A IMAGEM DE FUNDO (arquivo ao lado do index.html ou link) <<< */
+  --fundo:url('fundo.png');
+  /* quão escura fica a imagem: 0 = nada, 1 = preto total */
+  --escurecer:.65;
+}
+body{
+  min-height:100vh;
+  background-color:#1a1424;
+  background-image:linear-gradient(rgba(10,6,18,var(--escurecer)),rgba(10,6,18,var(--escurecer))),var(--fundo);
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+.container{width:100%}
+.select select{text-align-last:center}
 textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
 .sorteado{word-break:break-word}
 </style>
 </head>
 <body>
-<section class="section px-3 py-5">
+<section class="section px-3 py-5 is-flex is-align-items-center is-justify-content-center" style="min-height:100vh">
 <div class="container is-max-tablet">
 
-  <h1 class="title is-2 has-text-centered mb-5">🎁 Amigo Secreto</h1>
+  <h1 class="title is-2 has-text-centered has-text-white mb-5">🎁 Amigo Secreto</h1>
 
   <!-- ADMIN: só aparece em  seusite.com/#admin -->
-  <div id="admin" class="box is-hidden">
+  <div id="admin" class="box has-text-centered is-hidden">
     <h2 class="title is-5 mb-2">Admin: gerar sorteio</h2>
     <p class="help is-size-6 mb-3">Uma pessoa por linha, no formato <b>Nome, código</b>. O código é o que cada pessoa combinou com você (mínimo 6 caracteres).</p>
     <div class="field">
@@ -43,7 +60,7 @@ textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
   </div>
 
   <!-- USUÁRIO -->
-  <div id="user" class="box">
+  <div id="user" class="box has-text-centered">
     <h2 class="title is-4 mb-4">Descubra seu amigo secreto</h2>
 
     <div id="colar" class="is-hidden">
@@ -75,7 +92,7 @@ textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
     <div id="resultado" class="is-hidden has-text-centered mt-4">
       <p class="is-size-6 has-text-grey">Seu amigo secreto é:</p>
       <p id="nomeSorteado" class="title is-1 has-text-primary my-3 sorteado"></p>
-      <p class="is-size-6 has-text-grey">Shhh, não conte pra ninguém 🤫</p>
+      <p class="is-size-6 has-text-grey">NÃO CONTE PARA NINGUÉM!!!!!</p>
     </div>
   </div>
 
