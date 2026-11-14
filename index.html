@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amigo Secreto</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+<style>
+:root{--bulma-primary-h:153deg}
+textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
+.sorteado{word-break:break-word}
+</style>
+</head>
+<body>
+<section class="section px-3 py-5">
+<div class="container is-max-tablet">
+
+  <h1 class="title is-2 has-text-centered mb-5">🎁 Amigo Secreto</h1>
+
+  <!-- ADMIN: só aparece em  seusite.com/#admin -->
+  <div id="admin" class="box is-hidden">
+    <h2 class="title is-5 mb-2">Admin: gerar sorteio</h2>
+    <p class="help is-size-6 mb-3">Uma pessoa por linha, no formato <b>Nome, código</b>. O código é o que cada pessoa combinou com você (mínimo 6 caracteres).</p>
+    <div class="field">
+      <div class="control">
+        <textarea id="lista" class="textarea" rows="7" placeholder="Ana, maçã2024&#10;Bruno, violao77&#10;Carla, pipoca123"></textarea>
+      </div>
+    </div>
+    <button id="btnGerar" class="button is-primary is-medium is-fullwidth">Gerar sorteio</button>
+    <p id="admMsg" class="help is-size-6 mt-3"></p>
+
+    <div id="admOut" class="is-hidden mt-4">
+      <div class="field">
+        <label class="label" for="json">Sorteio criptografado</label>
+        <div class="control">
+          <textarea id="json" class="textarea" rows="4" readonly></textarea>
+        </div>
+      </div>
+      <button id="btnSite" class="button is-primary is-medium is-fullwidth mb-2">Baixar site pronto (index.html)</button>
+      <button id="btnBaixar" class="button is-primary is-light is-fullwidth mb-2">Baixar só o sorteio.json</button>
+      <button id="btnCopiar" class="button is-light is-fullwidth">Copiar conteúdo</button>
+    </div>
+  </div>
+
+  <!-- USUÁRIO -->
+  <div id="user" class="box">
+    <h2 class="title is-4 mb-4">Descubra seu amigo secreto</h2>
+
+    <div id="colar" class="is-hidden">
+      <p class="help is-size-6 mb-3">Não encontrei o sorteio. Cole aqui o conteúdo do <b>sorteio.json</b>:</p>
+      <div class="field">
+        <div class="control"><textarea id="colado" class="textarea" rows="4"></textarea></div>
+      </div>
+      <button id="btnCarregar" class="button is-primary is-light is-fullwidth">Carregar</button>
+    </div>
+
+    <div id="form" class="is-hidden">
+      <div class="field">
+        <label class="label" for="quem">Quem é você?</label>
+        <div class="control">
+          <div class="select is-medium is-fullwidth"><select id="quem"></select></div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="codigo">Seu código</label>
+        <div class="control">
+          <input id="codigo" class="input is-medium" type="password" autocomplete="off" autocapitalize="off">
+        </div>
+      </div>
+      <button id="btnRevelar" class="button is-primary is-medium is-fullwidth mt-4">Descobrir</button>
+    </div>
+
+    <p id="userMsg" class="help is-size-6 mt-3"></p>
+
+    <div id="resultado" class="is-hidden has-text-centered mt-4">
+      <p class="is-size-6 has-text-grey">Seu amigo secreto é:</p>
+      <p id="nomeSorteado" class="title is-1 has-text-primary my-3 sorteado"></p>
+      <p class="is-size-6 has-text-grey">Shhh, não conte pra ninguém 🤫</p>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<script id="dados" type="application/json"></script>
+<script>
+// fonte original da página (antes de qualquer alteração), usada para gerar o site pronto
+const FONTE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const enc = new TextEncoder(), dec = new TextDecoder();
+const $ = id => document.getElementById(id);
+const b64 = u => btoa(String.fromCharCode(...u));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const norm = s => s.trim().toLowerCase();
+const ITER = 200000;
+const MSG = 'help is-size-6 mt-3';
+let dados = null;
+
+/* ---------- cripto ---------- */
+// a chave depende do código E do nome, então o código de um não abre o de outro
+async function deriveKey(code, name, salt) {
+  const base = await crypto.subtle.importKey('raw', enc.encode(code.trim() + '|' + norm(name)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: ITER, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+
+// aleatório sem viés
+function rnd(n) {
+  const a = new Uint32Array(1), lim = Math.floor(2 ** 32 / n) * n;
+  do { crypto.getRandomValues(a); } while (a[0] >= lim);
+  return a[0] % n;
+}
+
+// Sattolo: gera um ciclo único => ninguém tira a si mesmo e ninguém fica "sobrando"
+function ciclo(n) {
+  const p = [...Array(n).keys()];
+  for (let i = n - 1; i > 0; i--) {
+    const j = rnd(i);
+    [p[i], p[j]] = [p[j], p[i]];
+  }
+  return p;
+}
+
+/* ---------- admin ---------- */
+async function gerar() {
+  const msg = $('admMsg'); msg.className = MSG; $('admOut').classList.add('is-hidden');
+  const pessoas = [];
+  for (const l of $('lista').value.split('\n').map(x => x.trim()).filter(Boolean)) {
+    const i = l.indexOf(',');
+    if (i < 1) return erro(msg, `Linha inválida: "${l}". Use: Nome, código`);
+    pessoas.push({ nome: l.slice(0, i).trim(), codigo: l.slice(i + 1).trim() });
+  }
+  if (pessoas.length < 3) return erro(msg, 'Precisa de pelo menos 3 pessoas.');
+  if (pessoas.some(p => !p.codigo)) return erro(msg, 'Todo mundo precisa de um código.');
+  if (new Set(pessoas.map(p => norm(p.nome))).size !== pessoas.length) return erro(msg, 'Tem nome repetido.');
+  const fracos = pessoas.filter(p => p.codigo.length < 6).map(p => p.nome);
+
+  msg.textContent = 'Sorteando e criptografando...';
+  const perm = ciclo(pessoas.length);
+  const out = [];
+  for (let i = 0; i < pessoas.length; i++) {
+    const p = pessoas[i];
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(p.codigo, p.nome, salt);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(pessoas[perm[i]].nome)));
+    out.push({ n: p.nome, s: b64(salt), i: b64(iv), c: b64(ct) });
+  }
+  out.sort((a, b) => a.n.localeCompare(b.n, 'pt'));
+  $('json').value = JSON.stringify({ v: 1, pessoas: out });
+  $('admOut').classList.remove('is-hidden');
+  msg.textContent = 'Pronto! O resultado não é mostrado aqui. Baixe o site pronto e hospede esse index.html.'
+    + (fracos.length ? ` Atenção: código curto (fácil de adivinhar) para ${fracos.join(', ')}.` : '');
+}
+
+function salvar(conteudo, tipo, nome) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+  a.download = nome; a.click();
+}
+function baixar() { salvar($('json').value, 'application/json', 'sorteio.json'); }
+
+// copia o próprio site com o sorteio já dentro da tag #dados
+function baixarSite() {
+  const j = $('json').value.replace(/</g, '\\u003c');
+  const html = FONTE.replace(
+    /(<script id="dados" type="application\/json">)[\s\S]*?(<\/script>)/,
+    (_, ini, fim) => ini + j + fim);
+  salvar(html, 'text/html', 'index.html');
+}
+
+async function copiar() {
+  try { await navigator.clipboard.writeText($('json').value); $('admMsg').textContent = 'Copiado!'; }
+  catch { $('json').select(); }
+}
+
+/* ---------- usuário ---------- */
+function usar(j) {
+  dados = j;
+  $('quem').innerHTML = '<option value="">Escolha seu nome</option>'
+    + j.pessoas.map(p => `<option>${p.n.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</option>`).join('');
+  $('colar').classList.add('is-hidden');
+  $('form').classList.remove('is-hidden');
+}
+
+async function carregar() {
+  const emb = $('dados').textContent.trim();
+  if (emb) { try { return usar(JSON.parse(emb)); } catch {} }
+  try {
+    const r = await fetch('sorteio.json', { cache: 'no-store' });
+    if (r.ok) return usar(await r.json());
+  } catch {}
+  $('colar').classList.remove('is-hidden');
+}
+
+function carregarColado() {
+  try { usar(JSON.parse($('colado').value)); $('userMsg').textContent = ''; }
+  catch { erro($('userMsg'), 'Conteúdo inválido.'); }
+}
+
+async function revelar() {
+  const msg = $('userMsg'); msg.className = MSG; $('resultado').classList.add('is-hidden');
+  const p = dados.pessoas.find(x => x.n === $('quem').value);
+  if (!p) return erro(msg, 'Escolha seu nome na lista.');
+  if (!$('codigo').value.trim()) return erro(msg, 'Digite seu código.');
+  msg.textContent = 'Verificando...';
+  try {
+    const key = await deriveKey($('codigo').value, p.n, unb64(p.s));
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(p.i) }, key, unb64(p.c));
+    msg.textContent = '';
+    $('nomeSorteado').textContent = dec.decode(pt);
+    $('resultado').classList.remove('is-hidden');
+  } catch {
+    erro(msg, 'Código incorreto para esse nome.');
+  }
+}
+
+function erro(el, t) { el.textContent = t; el.className = MSG + ' has-text-danger'; }
+
+/* ---------- init ---------- */
+function rota() { $('admin').classList.toggle('is-hidden', location.hash !== '#admin'); }
+addEventListener('hashchange', rota); rota();
+$('btnGerar').onclick = gerar;
+$('btnBaixar').onclick = baixar;
+$('btnSite').onclick = baixarSite;
+$('btnCopiar').onclick = copiar;
+$('btnCarregar').onclick = carregarColado;
+$('btnRevelar').onclick = revelar;
+$('codigo').addEventListener('keydown', e => { if (e.key === 'Enter') revelar(); });
+carregar();
+</script>
+</body>
+</html>
