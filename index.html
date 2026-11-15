@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
+<html lang="pt-BR"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Amigo Secreto</title>
@@ -12,7 +11,7 @@
   /* >>> TROQUE AQUI A IMAGEM DE FUNDO (arquivo ao lado do index.html ou link) <<< */
   --fundo:url('fundo.png');
   /* quão escura fica a imagem: 0 = nada, 1 = preto total */
-  --escurecer:.65;
+  --escurecer:.85;
 }
 body{
   min-height:100vh;
@@ -40,7 +39,9 @@ textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
     <p class="help is-size-6 mb-3">Uma pessoa por linha, no formato <b>Nome, código</b>. O código é o que cada pessoa combinou com você (mínimo 6 caracteres).</p>
     <div class="field">
       <div class="control">
-        <textarea id="lista" class="textarea" rows="7" placeholder="Ana, maçã2024&#10;Bruno, violao77&#10;Carla, pipoca123"></textarea>
+        <textarea id="lista" class="textarea" rows="7" placeholder="Ana, maçã2024
+Bruno, violao77
+Carla, pipoca123"></textarea>
       </div>
     </div>
     <button id="btnGerar" class="button is-primary is-medium is-fullwidth">Gerar sorteio</button>
@@ -50,7 +51,7 @@ textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
       <div class="field">
         <label class="label" for="json">Sorteio criptografado</label>
         <div class="control">
-          <textarea id="json" class="textarea" rows="4" readonly></textarea>
+          <textarea id="json" class="textarea" rows="4" readonly=""></textarea>
         </div>
       </div>
       <button id="btnSite" class="button is-primary is-medium is-fullwidth mb-2">Baixar site pronto (index.html)</button>
@@ -99,7 +100,7 @@ textarea.textarea{font-family:ui-monospace,monospace;font-size:.9rem}
 </div>
 </section>
 
-<script id="dados" type="application/json"></script>
+<script id="dados" type="application/json">{"v":1,"pessoas":[{"n":"CallMePaulo","s":"cdwJ0egsg2XwshModXXWXA==","i":"DagO+6vN6o1cUNXX","c":"0Qkzjiisk0WJW1VOMHTa1qajjyUo7A=="},{"n":"Ithan","s":"GgQ7VLbD00sqxxhWuadZow==","i":"sKWrlfnfjo9gCft9","c":"CUI/NZP2f0/3i/4UFBW8E74NwSUj"},{"n":"Laf","s":"0UQZuI4Ht2e6duD1bG3fNQ==","i":"81YgYdDti0RP9Pq+","c":"2RDtQViXEv4gfFvT9Rl2dQCU1oQN9Y45S8K7"},{"n":"Lagaao","s":"PNhRSaAtWBUUkt/Pn54ZgQ==","i":"JjfGaTsUFNYP+CAr","c":"Qn3PA1ZBbrXyV2vdVFglFwbKerzR6dARvc4="},{"n":"Luke","s":"ErqeGYInjN1F3by+uwOzOQ==","i":"b/s/qrlWm9dcKEP5","c":"mvzaEJXjgYBZ5XaoTWSK+EjF70hHXNY="},{"n":"O buné","s":"ctebOEX/mtk+1vSwQq6u6A==","i":"b5/VDj+tpZlHa7ba","c":"DuKCryZQvDOVkmbyppp1IAiLrQ=="},{"n":"Scott","s":"za/T4AQ+RK2aesa2xEJhjA==","i":"W+nWXHLGSSyQKrrV","c":"N2faEn+hqDL5N2Cg4bCuCo4ga64="},{"n":"Waniiburro","s":"+OU61OOMPgYquMa9pWGNSw==","i":"7nFFoYB6zTID9guT","c":"2rV2Wz04mhbfYOWSbJzkGEYxGm7F"}]}</script>
 <script>
 // fonte original da página (antes de qualquer alteração), usada para gerar o site pronto
 const FONTE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
@@ -245,6 +246,4 @@ $('btnCarregar').onclick = carregarColado;
 $('btnRevelar').onclick = revelar;
 $('codigo').addEventListener('keydown', e => { if (e.key === 'Enter') revelar(); });
 carregar();
-</script>
-</body>
-</html>
+</script></body></html>
